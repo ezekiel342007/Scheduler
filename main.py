@@ -122,18 +122,19 @@ async def get_activities(id: int) -> List[Activity]:
     return activities
 
 
-@app.put("schedule/activity/{id}")
-async def edit_activity(
-    id: int, name: str | None = None, time: str | None = None,
-    description: str | None = None, repetitive: bool = False, completed: bool = False
-    ) -> Response:
+@app.put("/schedule/activity/{id}")
+async def edit_activity(id:int, request: Request) -> Response:
+    body = await request.body()
+    activity_details = dict(json.loads(body))
+    print(activity_details)
     with Session(engine) as session:
         activity = session.exec(select(Activity).where(Activity.id == id)).one()
-        if name: activity.name = name
-        if time: activity.time = datetime.strptime(time, "%Y-%m-%dT%H:%m:%sZ")
-        if description: activity.description = description
-        if repetitive: activity.repetitive = repetitive
-        if completed: activity.completed = completed
+        if activity_details.get("name"): activity.name = activity_details["name"]
+        if activity_details.get("time"): activity.time = datetime.strptime(activity_details["time"], "%Y-%m-%dT%H:%m:%")
+        if activity_details.get("description"): activity.description = activity_details["description"]
+        if activity_details.get("repetitive"): activity.repetitive = activity_details["repetitive"]
+        if activity_details.get("completed"): activity.completed = activity_details["completed"] 
+        else: activity.completed = bool(activity_details["completed"])
         session.commit()
         session.refresh(activity)
     return Response(content=json.dumps({"Success": "Activity changed"}), status_code=status.HTTP_200_OK)
