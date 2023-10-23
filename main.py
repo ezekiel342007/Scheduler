@@ -103,12 +103,16 @@ async def delete_schedule(id: int) -> Response:
 
 
 @app.post("/schedule/{id}/activity")
-async def add_activity(name: str, id: int, time: str, description: str | None = None, repetitive: bool = False, completed: bool = False) -> None:
+async def add_activity(request: Request) -> Response:
+    body = await request.body()
+    activity = dict(json.loads(body))
+    print(body)
+    new_activity = Activity(name=activity["name"], description=activity["description"], time=datetime.strptime(activity["time"], "%Y-%m-%dT%H:%M"), repetitive=activity["repetitive"], completed=False, schedule_id=activity["schedule_id"])
     with Session(engine) as session:
-        new_activity = Activity(name=name, description=description, schedule_id=id, time=datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ"), repetitive=repetitive, completed=completed)
         session.add(new_activity)
         session.commit()
         session.refresh(new_activity)
+    return Response(content=json.dumps({"Success": "Activity added"}), status_code=status.HTTP_200_OK)
 
 
 @app.get("/schedule/{id}/activity")
@@ -130,6 +134,8 @@ async def edit_activity(
         if description: activity.description = description
         if repetitive: activity.repetitive = repetitive
         if completed: activity.completed = completed
+        session.commit()
+        session.refresh(activity)
     return Response(content=json.dumps({"Success": "Activity changed"}), status_code=status.HTTP_200_OK)
 
 
